@@ -4,12 +4,16 @@ from textblob import TextBlob
 import mysql.connector
 import re
 from datetime import datetime
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
 
 # 1. Extract Data using PRAW (official Reddit API)
 reddit = praw.Reddit(
-    client_id='puWwrb2HDM5BGm15rd3-dw',
-    client_secret='mK_KRB3d8igVhpHqGVa8wNEZJVAhFg',
-    user_agent='student-dropout-analysis'
+    client_id=os.getenv('REDDIT_CLIENT_ID'),
+    client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
+    user_agent=os.getenv('REDDIT_USER_AGENT')
 )
 
 keywords = [
