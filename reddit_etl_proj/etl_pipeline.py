@@ -19,7 +19,8 @@ reddit = praw.Reddit(
 keywords = [
     'Philippines dropout', 'DepEd', 'public school problems',
     'school dropout Philippines', 'education crisis',
-    'modular learning', 'distance learning', 'student dropout'
+    'modular learning', 'distance learning', 'student dropout',
+    'school', 'university', 'college', 'education', 'students'
 ]
 query = ' OR '.join(keywords)
 
