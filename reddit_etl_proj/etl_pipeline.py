@@ -6,10 +6,11 @@ import re
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import time
 
 load_dotenv()
 
-# 1. Extract Data using PRAW (official Reddit API)
+# 1. Extract Data using PRAW
 reddit = praw.Reddit(
     client_id=os.getenv('REDDIT_CLIENT_ID'),
     client_secret=os.getenv('REDDIT_CLIENT_SECRET'),
@@ -22,26 +23,37 @@ keywords = [
     'modular learning', 'distance learning', 'student dropout',
     'school', 'university', 'college', 'education', 'students'
 ]
-query = ' OR '.join(keywords)
-
 subreddits_to_search = ['Philippines', 'studentsph', 'AskPH']
 
+post_limit_per_query = 200  # per keyword/subreddit combination
+seen_ids = set()
 posts = []
+
 for subreddit in subreddits_to_search:
-    for submission in reddit.subreddit(subreddit).search(query, sort='new', limit=10000):
-        posts.append({
-            'id': submission.id,
-            'content': submission.title + ' ' + submission.selftext,
-            'date': datetime.fromtimestamp(submission.created_utc),
-            'url': submission.url,
-            'subreddit': submission.subreddit.display_name
-        })
+    for keyword in keywords:
+        try:
+            for submission in reddit.subreddit(subreddit).search(keyword, sort='new', limit=post_limit_per_query):
+                if submission.id not in seen_ids:
+                    seen_ids.add(submission.id)
+                    posts.append({
+                        'id': submission.id,
+                        'content': submission.title + ' ' + submission.selftext,
+                        'date': datetime.fromtimestamp(submission.created_utc),
+                        'url': submission.url,
+                        'subreddit': submission.subreddit.display_name
+                    })
+            time.sleep(1)  # avoid rate limit
+        except Exception as e:
+            print(f"Error on keyword '{keyword}' in subreddit '{subreddit}': {e}")
+            time.sleep(5)
+
+print(f"Total posts collected: {len(posts)}")
 
 df = pd.DataFrame(posts)
 
 # 2. Transform Data
 def clean_text(text):
-    text = re.sub(r"http\S+|www\S+|[^a-zA-Z\s]", "", text)  # Remove links, punctuation
+    text = re.sub(r"http\S+|www\S+|[^a-zA-Z\s]", "", text)
     return text.lower().strip()
 
 df['clean_content'] = df['content'].apply(clean_text)
@@ -57,28 +69,26 @@ conn = mysql.connector.connect(
     password="somallari01",
     database="reddit_education"
 )
-cursor = conn.cursor(buffered=True)  # Use buffered cursor to fix "Unread result found"
+cursor = conn.cursor(buffered=True)
 
-# Insert into DimSubreddit
-subreddits = df['subreddit'].unique()
+# DimSubreddit
 subreddit_map = {}
-for sr in subreddits:
+for sr in df['subreddit'].unique():
     cursor.execute("INSERT IGNORE INTO DimSubreddit (name) VALUES (%s)", (sr,))
     conn.commit()
     cursor.execute("SELECT subreddit_id FROM DimSubreddit WHERE name = %s", (sr,))
     subreddit_map[sr] = cursor.fetchone()[0]
 
-# Insert into DimTime
-years = df['year'].unique()
+# DimTime
 year_map = {}
-for y in years:
+for y in df['year'].unique():
     y_int = int(y)
     cursor.execute("INSERT IGNORE INTO DimTime (year) VALUES (%s)", (y_int,))
     conn.commit()
     cursor.execute("SELECT time_id FROM DimTime WHERE year = %s", (y_int,))
     year_map[y] = cursor.fetchone()[0]
 
-# Insert into FactPost
+# FactPost
 for _, row in df.iterrows():
     cursor.execute("""
         INSERT IGNORE INTO FactPost (
