@@ -31,8 +31,8 @@ keywords = [
     'school', 'university', 'college', 'education', 'students',
     'CHED', 'mental health students', 'education reform', 'out of school'
 ]
-subreddits_to_search = ['Philippines', 'studentsph', 'AskPH', 'DepEdTeachersPH', 'Pinoy']
-post_limit_per_query = 400
+subreddits_to_search = ['Philippines', 'studentsph', 'AskPH', 'DepEdTeachersPH', 'Pinoy', 'CollegeAdmissionsPH', 'CollegePhilippines']
+post_limit_per_query = 1000
 
 # Extract
 seen_ids = set()
