@@ -152,10 +152,15 @@ try:
     df_viz['sentiment_label'] = df_viz['sentiment'].apply(
         lambda x: 'Positive' if x > 0.1 else 'Negative' if x < -0.1 else 'Neutral'
     )
+    df_viz['year'] = df_viz['year'].astype(int)
 
-    # Sentiment Distribution
+    # Sort DataFrame by year for consistency
+    df_viz = df_viz.sort_values(by='year')
+    year_order = sorted(df_viz['year'].unique()) 
+
+    # 1. Sentiment Distribution
     plt.figure(figsize=(8, 6))
-    sns.countplot(x='sentiment_label', data=df_viz, palette='coolwarm', hue=None)
+    sns.countplot(x='sentiment_label', hue='sentiment_label', data=df_viz, palette='coolwarm', legend=False)
     plt.title('Sentiment Distribution of Reddit Posts')
     plt.xlabel('Sentiment')
     plt.ylabel('Number of Posts')
@@ -163,9 +168,9 @@ try:
     plt.savefig("sentiment_distribution.png")
     plt.show()
 
-    # Dropout Mentions Over Time
+    # 2. Dropout Mentions Over Time
     plt.figure(figsize=(10, 6))
-    sns.countplot(x='year', hue='dropout_mentioned', data=df_viz, palette='Set2')
+    sns.countplot(x='year', hue='dropout_mentioned', data=df_viz, palette='Set2', order=year_order)
     plt.title('Dropout Mentions by Year')
     plt.xlabel('Year')
     plt.ylabel('Number of Posts')
@@ -174,7 +179,7 @@ try:
     plt.savefig("dropout_mentions_by_year.png")
     plt.show()
 
-    # Sentiment per Subreddit (Heatmap)
+    # 3. Sentiment per Subreddit (Heatmap)
     sentiment_by_sub = df_viz.groupby(['subreddit', 'sentiment_label']).size().unstack().fillna(0)
     plt.figure(figsize=(10, 6))
     sns.heatmap(sentiment_by_sub, annot=True, fmt='g', cmap='YlGnBu')
@@ -185,7 +190,7 @@ try:
     plt.savefig("sentiment_heatmap_subreddit.png")
     plt.show()
 
-    # Insight Summary
+    # 4. Insight Summary
     total_posts = len(df_viz)
     dropout_count = df_viz['dropout_mentioned'].sum()
     neutral_pct = round((df_viz['sentiment_label'] == 'Neutral').mean() * 100, 2)
